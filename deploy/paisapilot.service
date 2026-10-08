@@ -1,0 +1,28 @@
+[Unit]
+Description=PaisaPilot API
+After=network.target postgresql.service
+
+[Service]
+User=paisa
+Group=paisa
+WorkingDirectory=/opt/paisapilot/backend
+EnvironmentFile=/etc/paisapilot.env
+# 1 worker + threads keeps the in-memory rate limiter consistent
+ExecStart=/opt/paisapilot/backend/.venv/bin/gunicorn wsgi:app --bind 127.0.0.1:8100 --workers 1 --threads 8 --timeout 45 --access-logfile - --access-logformat '%(h)s "%(r)s" %(s)s %(b)s %(D)sus'
+Restart=on-failure
+RestartSec=3
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/paisapilot
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

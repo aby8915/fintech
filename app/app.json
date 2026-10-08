@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "PaisaPilot",
+    "slug": "paisapilot",
+    "scheme": "paisapilot",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0B1020",
+    "ios": {
+      "bundleIdentifier": "org.auraa.paisapilot",
+      "supportsTablet": true,
+      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "org.auraa.paisapilot",
+      "allowBackup": false,
+      "permissions": ["CAMERA", "RECORD_AUDIO"]
+    },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      ["expo-image-picker", { "cameraPermission": "PaisaPilot uses the camera to read your receipts. Photos are never stored." }],
+      ["expo-speech-recognition", {
+        "microphonePermission": "PaisaPilot listens when you tap the mic to log an expense by voice.",
+        "speechRecognitionPermission": "PaisaPilot turns your voice into an expense entry."
+      }]
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}
