@@ -12,7 +12,7 @@ cp deploy/paisapilot.service /etc/systemd/system/ && systemctl daemon-reload
 cp deploy/paisa-proxy.conf /etc/nginx/snippets/paisa-proxy.conf
 cp deploy/nginx-paisa.conf /etc/nginx/sites-available/paisapilot && nginx -t && systemctl reload nginx
 
-(cd backend && sudo -u paisa env $(grep -v '^#' /etc/paisapilot.env | xargs) .venv/bin/flask --app wsgi:app init-db)
+sudo -u paisa bash -c 'set -a; . /etc/paisapilot.env; set +a; cd /opt/paisapilot/backend && .venv/bin/flask --app wsgi:app init-db'
 systemctl restart paisapilot
 
 for i in 1 2 3 4 5 6; do

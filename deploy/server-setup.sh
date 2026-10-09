@@ -6,7 +6,7 @@ set -euo pipefail
 REPO="${1:?usage: server-setup.sh <git-ssh-url>}"
 
 apt-get update
-apt-get install -y python3-venv python3-dev postgresql nginx certbot python3-certbot-nginx git rsync ufw
+apt-get install -y python3-venv python3-dev postgresql nginx certbot python3-certbot-nginx git rsync
 
 # --- users & dirs ---
 id paisa &>/dev/null || useradd --system --home /opt/paisapilot --shell /usr/sbin/nologin paisa
@@ -30,7 +30,7 @@ DATABASE_URL=postgresql+psycopg://paisa:${DB_PASS}@127.0.0.1:5432/paisapilot
 MASTER_KEY=$(gen)
 BLIND_INDEX_KEY=$(gen)
 JWT_SECRET=$(gen)
-GOOGLE_CLIENT_IDS=
+GOOGLE_CLIENT_IDS=placeholder.apps.googleusercontent.com
 ALLOWED_ORIGINS=https://paisa.auraa-ai.org
 ANTHROPIC_API_KEY=
 AI_MODEL=claude-haiku-5-5
@@ -40,9 +40,9 @@ SMTP_HOST=smtp-relay.brevo.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
-MAIL_FROM=PaisaPilot <no-reply@auraa-ai.org>
+MAIL_FROM="PaisaPilot <no-reply@auraa-ai.org>"
 EOF
-  chmod 600 /etc/paisapilot.env
+  chown root:paisa /etc/paisapilot.env && chmod 640 /etc/paisapilot.env
   echo ">>> Edit /etc/paisapilot.env: add GOOGLE_CLIENT_IDS, ANTHROPIC_API_KEY, SMTP_*."
   echo ">>> BACK UP MASTER_KEY + BLIND_INDEX_KEY offline (password manager). Lose them = data is unrecoverable."
 fi
@@ -62,12 +62,12 @@ chmod 440 /etc/sudoers.d/paisapilot-deploy
 printf 'server { listen 80; server_name paisa.auraa-ai.org; root /var/www/paisapilot/web; }\n' > /etc/nginx/sites-available/paisapilot
 ln -sf /etc/nginx/sites-available/paisapilot /etc/nginx/sites-enabled/paisapilot
 nginx -t && systemctl reload nginx
-certbot certonly --nginx -d paisa.auraa-ai.org --non-interactive --agree-tos -m "${CERTBOT_EMAIL:?set CERTBOT_EMAIL}"
+certbot certonly --webroot -w /var/www/paisapilot/web --deploy-hook "systemctl reload nginx" -d paisa.auraa-ai.org --non-interactive --agree-tos -m "${CERTBOT_EMAIL:?set CERTBOT_EMAIL}"
 cp /opt/paisapilot/deploy/nginx-paisa.conf /etc/nginx/sites-available/paisapilot
 nginx -t && systemctl reload nginx
 
 systemctl daemon-reload
-(cd /opt/paisapilot/backend && sudo -u paisa env $(grep -v '^#' /etc/paisapilot.env | xargs) .venv/bin/flask --app wsgi:app init-db)
+sudo -u paisa bash -c 'set -a; . /etc/paisapilot.env; set +a; cd /opt/paisapilot/backend && .venv/bin/flask --app wsgi:app init-db'
 systemctl enable --now paisapilot
 
 # nightly cleanup of expired OTPs / tokens + encrypted DB backup (14 days kept)
@@ -76,5 +76,5 @@ cat > /etc/cron.d/paisapilot <<'EOF'
 30 3 * * * root /opt/paisapilot/deploy/backup.sh
 EOF
 
-ufw allow OpenSSH && ufw allow 'Nginx Full' && ufw --force enable
+# Firewall is managed in the Lightsail console (22/80/443); ufw is intentionally not touched.
 echo "Done. Health: curl -s https://paisa.auraa-ai.org/api/v1/health"
